@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from db_managment import DbManagment
+
 
 class Gui:
 
@@ -24,6 +25,9 @@ class Gui:
         self.score_entry = None
         self.note_text = None
         self.console_entry = None
+
+        self.contextual_menu = None
+        
     
     def start_main_root(self):
         """Iniciate the main root"""
@@ -32,7 +36,7 @@ class Gui:
         self.main_root.geometry("800x500")
 
         top_frame = tk.Frame(self.main_root, bg="gray22")
-        top_frame.pack( fill="x")
+        top_frame.pack(fill="x")
 
         add_button = tk.Button(top_frame, text="+ADD", fg="white", bg="green", command=self.start_add_window)
         add_button.pack(padx=8,pady=8,side="left")
@@ -61,11 +65,18 @@ class Gui:
         asc_desc_button = tk.Button(top_frame, text="ASC", bg="lightgray", command=toggle_order)
         asc_desc_button.pack(padx=5,pady=8, side="right")
 
+        def click_MBR(event):
+            row = self.tree.identify_row(event.y)
+            if row:
+                self.tree.selection_set(row)
+                self.show_contextual_menu(event)
+
         self.tree = ttk.Treeview(self.main_root)
         self.tree.bind("<Double-1>", lambda x :self.start_add_window(True))
+        self.tree.bind("<Button-3>", lambda event:click_MBR(event))
 
         self.tree["columns"] = ("title", "date", "console", "score", "note")
-        self.tree.column("#0",width=50 ,minwidth=50, anchor="w")  # Columna principal (la que no se nombra)
+        self.tree.column("#0",width=50 ,minwidth=50, anchor="w")
         self.tree.column("title", width=200,minwidth=200, anchor="center")
         self.tree.column("date", width=100,minwidth=100, anchor="center")
         self.tree.column("console", width=70,minwidth=70, anchor="center")
@@ -81,12 +92,27 @@ class Gui:
 
         self.tree.pack(fill="both", expand=1)
 
+        def delete():
+            result = messagebox.askokcancel("Confirmar", "¿Desea eliminar los datos?\nya no se podrán recuperar")
+            if result:
+                idx = self.tree.selection()
+                title = self.tree.item(idx[0],"values")[0]
+                self.delete_in_db(title)
+                self.update_tree()
+
+        self.contextual_menu = tk.Menu(self.main_root, tearoff=0)
+        self.contextual_menu.add_command(label="Editar", command=lambda:self.start_add_window(modify=True))
+        self.contextual_menu.add_separator()
+        self.contextual_menu.add_command(label="Eliminar", command=delete)
+
         self.update_tree()
 
         self.main_root.mainloop()
 
     def start_add_window(self, modify:bool = False):
         root = tk.Toplevel(self.main_root)
+
+        root.grab_set() #Bloquea la ventana principal
         
         title_label = tk.Label(root,text="Título:")
         title_label.grid(row=0,column=0,padx=10,pady=5, sticky="w")
@@ -95,7 +121,7 @@ class Gui:
 
         date_label = tk.Label(root,text="Fecha:")
         date_label.grid(row=2,column=0, sticky="w",padx=10)
-        self.date_entry = DateEntry(root, locale="es_ES", date_pattern="dd-mm-y")
+        self.date_entry = DateEntry(root, locale="es_ES", date_pattern="dd-mm-y", state="readonly")
         self.date_entry.grid(row=3, column=0,padx=10, columnspan=2 ,sticky="we")
 
         score_label = tk.Label(root,text="Puntaje:")
@@ -147,9 +173,11 @@ class Gui:
             cancel_button.grid(row=0,column=0, pady=10, padx=5)
 
             def eliminate():
-                self.delete_in_db(title)
-                root.destroy()
-                self.update_tree()
+                result = messagebox.askokcancel("Confirmar", "¿Desea eliminar los datos?\nya no se podrán recuperar")
+                if result:
+                    self.delete_in_db(title)
+                    root.destroy()
+                    self.update_tree()
 
             delete_button = tk.Button(frame_buttons,text="Eliminar", fg="white", bg="red",width=15,command=eliminate)
             delete_button.grid(row=0,column=1, pady=10, padx=5)
@@ -166,7 +194,9 @@ class Gui:
             save_button = tk.Button(frame_buttons,text="Guardar", fg="white", bg="green",width=15,command=update)
             save_button.grid(row=0,column=2, pady=10, padx=5)
 
-
+    def show_contextual_menu(self, event):
+        """Pop up the contextual menu edit/delete"""
+        self.contextual_menu.tk_popup(event.x_root, event.y_root)
 
     def delete_in_db(self,title):
         """Delete an element in db with the title"""
