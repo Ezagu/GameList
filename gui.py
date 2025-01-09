@@ -1,15 +1,29 @@
 import tkinter as tk
 from tkinter import ttk
 from tkcalendar import DateEntry
+from db_managment import DbManagment
 
 class Gui:
 
     def __init__(self):
+
+        self.db = DbManagment()
+        self.user_id = 1
+
+        self.orderby = "title"
+        self.order = "DESC"
+
         self.login_root = None
         self.main_root = None
 
         self.tree = None
         self.count_in_tree = 1
+
+        self.title_entry = None
+        self.date_entry = None
+        self.score_entry = None
+        self.note_text = None
+        self.console_entry = None
     
     def start_main_root(self):
         """Iniciate the main root"""
@@ -50,10 +64,7 @@ class Gui:
 
         self.tree.pack(fill="both", expand=1)
 
-        self.insert_to_tree(1,1,1,1,1)
-        self.insert_to_tree(2,2,2,2,2)
-
-        self.clear_tree()
+        self.update_tree()
 
         self.main_root.mainloop()
 
@@ -62,6 +73,16 @@ class Gui:
         idx = str(self.count_in_tree)
         self.tree.insert("", "end", idx, text=idx, values=(title, date, console,score,note))
         self.count_in_tree += 1
+
+    def add_game(self):
+        """Add a game automatically to db"""
+        title = self.title_entry.get()
+        date = self.date_entry.get()
+        score = self.score_entry.get()
+        console = self.console_entry.get()
+        note = self.note_text.get("1.0", "end")
+        self.db.insert_to_db(title, date, score,console,note, self.user_id)
+        self.update_tree()
 
     def clear_tree(self):
         """Clear all the items in the tree"""
@@ -79,8 +100,8 @@ class Gui:
 
         date_label = tk.Label(root,text="Fecha:")
         date_label.grid(row=2,column=0, sticky="w",padx=10)
-        date_entry = DateEntry(root, locale="es_ES", date_pattern="dd-mm-y")
-        date_entry.grid(row=3, column=0,padx=10, columnspan=2 ,sticky="we")
+        self.date_entry = DateEntry(root, locale="es_ES", date_pattern="dd-mm-y")
+        self.date_entry.grid(row=3, column=0,padx=10, columnspan=2 ,sticky="we")
 
         score_label = tk.Label(root,text="Puntaje:")
         score_label.grid(row=4,column=0, sticky="w",padx=10)
@@ -100,8 +121,21 @@ class Gui:
         cancel_button = tk.Button(root,text="Cancelar", fg="white", bg="red",width=15,command=lambda:root.destroy())
         cancel_button.grid(row=8,column=0, pady=10)
 
-        accept_button = tk.Button(root, text="Añadir", fg="white", bg="green",width=15)
+        accept_button = tk.Button(root, text="Añadir", fg="white", bg="green",width=15,command=lambda : add())
         accept_button.grid(row=8, column=1, pady=10)
+
+        def add():
+            self.add_game()
+            root.destroy()
+
+        
+
+    def update_tree(self):
+        """Update the tree with all the games in db"""
+        self.clear_tree()
+        games_list = self.db.get_from_db(self.orderby,self.order)
+        for game in games_list:
+            self.insert_to_tree(game[0], game[1], game[2], game[3], game[4])
 
     def start_login_root(self):
         """Iniciate the root for login"""
