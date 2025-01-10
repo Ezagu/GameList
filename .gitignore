@@ -1,2 +1,5 @@
-__pycache__/db_managment.cpython-313.pyc
-videogames.db
+__pycache__
+database.db
+build
+dist
+main.spec

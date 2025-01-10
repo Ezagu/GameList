@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from db_managment import DbManagment
+from datetime import datetime
 
 
 class Gui:
@@ -11,8 +12,8 @@ class Gui:
         self.db = DbManagment()
         self.user_id = 1
 
-        self.orderby = "title"
-        self.order = "ASC"
+        self.orderby = "date"
+        self.order = "DESC"
 
         self.login_root = None
         self.main_root = None
@@ -26,8 +27,7 @@ class Gui:
         self.note_text = None
         self.console_entry = None
 
-        self.contextual_menu = None
-        
+        self.contextual_menu = None 
     
     def start_main_root(self):
         """Iniciate the main root"""
@@ -53,7 +53,7 @@ class Gui:
             self.update_tree()
 
         filter_combobox = ttk.Combobox(top_frame, values=["Título", "Fecha", "Consola", "Puntaje"], state="readonly")
-        filter_combobox.set("Título")
+        filter_combobox.set("Fecha")
         filter_combobox.pack(padx=8,pady=8,side="right")
         filter_combobox.bind("<<ComboboxSelected>>", change_filter_mode)
 
@@ -62,7 +62,7 @@ class Gui:
             asc_desc_button.config(text=self.order)
             self.update_tree()
 
-        asc_desc_button = tk.Button(top_frame, text="ASC", bg="lightgray", command=toggle_order)
+        asc_desc_button = tk.Button(top_frame, text="DESC", bg="lightgray", command=toggle_order)
         asc_desc_button.pack(padx=5,pady=8, side="right")
 
         def click_MBR(event):
@@ -238,16 +238,5 @@ class Gui:
         self.clear_tree()
         games_list = self.db.get_from_db(self.orderby,self.order)
         for game in games_list:
-            self.insert_to_tree(game[0], game[1], game[2], game[3], game[4])
-
-    def start_login_root(self):
-        """Iniciate the root for login"""
-        self.login_root = tk.Tk()
-
-
-
-
-        self.login_root.mainloop()
-
-g = Gui()
-g.start_main_root()
+            date = datetime.strptime(game[1], "%Y-%m-%d").strftime("%d-%m-%Y")
+            self.insert_to_tree(game[0], date, game[2], game[3], game[4])
